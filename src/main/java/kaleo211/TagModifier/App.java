@@ -1,31 +1,22 @@
 package kaleo211.TagModifier;
 
-import java.io.IOException;
-
 import kaleo211.TagModifier.Crawler.Crawler;
 
-import org.jaudiotagger.audio.exceptions.CannotReadException;
-import org.jaudiotagger.audio.exceptions.CannotWriteException;
-import org.jaudiotagger.audio.exceptions.InvalidAudioFrameException;
-import org.jaudiotagger.audio.exceptions.ReadOnlyFileException;
-import org.jaudiotagger.tag.TagException;
+import org.jaudiotagger.tag.mp4.Mp4Tag;
 
 
 public class App {
-    public static void main( String[] args ) throws CannotReadException, IOException, TagException, ReadOnlyFileException, InvalidAudioFrameException, CannotWriteException {
+    public static void main( String[] args ) throws Exception {
 
+        M4aFile file = new M4aFile("/Users/kaleo211/Desktop/夜空中最亮的星.m4a");
+        Mp4Tag t = file.getTag();
 
         Crawler crawler = new Crawler();
-        crawler.crawl("Burn");
+        System.out.println(file.getName());
+        crawler.crawl(file.getName(), t);
 
+        file.setTag(t);
 
-
-
-
-//        M4aFile file = new M4aFile("/Users/kaleo211/Desktop/夜空中最亮的星.m4a");
-//        Mp4Tag tag = file.getTag();
-//        tag.setField(FieldKey.ARTIST, "zhou");
-//        file.setTag(tag);
 
 //        List<M4aFile> files = new ArrayList<M4aFile>();
 //        Files.walk(Paths.get("/Users/kaleo211/Desktop")).forEach(path -> {
@@ -39,5 +30,7 @@ public class App {
 //                }
 //            }
 //        });
+
+        System.exit(1);
     }
 }

@@ -22,7 +22,6 @@ public class M4aFile {
 
     private static final Pattern pattern = Pattern.compile("(.+)\\.m4a");
 
-
     // Constructors
     public M4aFile(String path) throws CannotReadException, IOException, TagException, ReadOnlyFileException, InvalidAudioFrameException {
         this(new File(path));
@@ -39,7 +38,6 @@ public class M4aFile {
         }
     }
 
-
     // Static Methods
     public static boolean isValid(String file_name) {
         if (pattern.matcher(file_name.toLowerCase()).find()) {
@@ -47,7 +45,6 @@ public class M4aFile {
         }
         return false;
     }
-
 
     // Getters & Setters
     public String getName() {

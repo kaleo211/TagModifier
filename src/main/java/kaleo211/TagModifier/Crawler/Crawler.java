@@ -1,8 +1,6 @@
 package kaleo211.TagModifier.Crawler;
 
 import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
@@ -10,50 +8,46 @@ import java.util.List;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
-import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.message.BasicNameValuePair;
+import org.jaudiotagger.tag.mp4.Mp4FieldKey;
 import org.jaudiotagger.tag.mp4.Mp4Tag;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
 public class Crawler {
 
-    HttpClient httpClient = null;
+    HttpClient httpClient;
 
-    public final static String song_url = "http://music.163.com/#/song?id=";
+    private final static String song_detail = "http://music.163.com/api/song/detail/?id=song_id&ids=[song_id]";
+    private final static String search = "http://music.163.com/api/search/pc";
 
     public Crawler() {
         httpClient = HttpClients.createDefault();
     }
 
-    public Mp4Tag crawl(String name) throws ClientProtocolException, IOException {
-        Mp4Tag tag = new Mp4Tag();
-
-
-        HttpPost search_url = new HttpPost("http://music.163.com/api/search/pc");
+    private String getSongID(String name) throws Exception {
+        HttpPost search_post = new HttpPost(search);
 
         // Add Post Parameters
         List<NameValuePair> params = new ArrayList<NameValuePair>();
-//        params.add(new BasicNameValuePair("csrf_token", null));
         params.add(new BasicNameValuePair("s", name));
-//        params.add(new BasicNameValuePair("hlpretag", "<span class=\"s-fc7\">"));
-//        params.add(new BasicNameValuePair("hlposttag", "</span>"));
+        params.add(new BasicNameValuePair("limit", "30"));
         params.add(new BasicNameValuePair("type", "1"));
         params.add(new BasicNameValuePair("offset", "0"));
+//        params.add(new BasicNameValuePair("hlpretag", "<span class=\"s-fc7\">"));
+//        params.add(new BasicNameValuePair("hlposttag", "</span>"));
 //        params.add(new BasicNameValuePair("total", "true"));
-        params.add(new BasicNameValuePair("limit", "30"));
+//        params.add(new BasicNameValuePair("csrf_token", null));
 
-        search_url.setEntity(new UrlEncodedFormEntity(params));
-        search_url.addHeader("Referer", "http://music.163.com/");
+        search_post.setEntity(new UrlEncodedFormEntity(params));
+        search_post.addHeader("Referer", "http://music.163.com/");
 
-        HttpResponse response = httpClient.execute(search_url);
-
-        System.out.println(response.getStatusLine());
+        HttpResponse response = httpClient.execute(search_post);
 
         // Save the response as JSON
         HttpEntity entity = response.getEntity();
@@ -66,23 +60,36 @@ public class Crawler {
         JSONObject obj = new JSONObject(result);
         JSONArray songs = obj.getJSONObject("result").getJSONArray("songs");
 
-        int song_id = songs.getJSONObject(0).getInt("id");
+        String id = String.valueOf(songs.getJSONObject(0).getInt("id"));
 
-        HttpGet song_get = new HttpGet(song_url+song_id);
-        HttpResponse r = httpClient.execute(song_get);
+        return id;
+    }
 
-        InputStream is = r.getEntity().getContent();
 
-        BufferedReader br1 = new BufferedReader(new InputStreamReader(r.getEntity().getContent()));
-        result = "";
-        while ((line = br1.readLine()) != null) {
+    public Mp4Tag crawl(String name, Mp4Tag tag) throws Exception {
+        String song_id = getSongID(name);
+
+        HttpGet song_get = new HttpGet(song_detail.replaceAll("song_id", song_id));
+        System.out.println(song_get.getURI());
+
+        HttpResponse response = httpClient.execute(song_get);
+
+        HttpEntity entity = response.getEntity();
+        BufferedReader br = new BufferedReader(new InputStreamReader(entity.getContent()));
+        String result = "", line;
+        while ((line = br.readLine()) != null) {
             result += line;
         }
+        JSONObject obj = new JSONObject(result);
+        JSONObject song = obj.getJSONArray("songs").getJSONObject(0);
+        String song_name = song.getString("name");
+        String song_artist = song.getJSONArray("artists").getJSONObject(0).getString("name");
+        String song_album = song.getJSONObject("album").getString("name");
 
-
-
-        System.out.println("size: "+result);
-
+        System.out.println("name: "+song_name+" artist: "+song_artist+" album: "+song_album);
+        tag.setField(tag.createField(Mp4FieldKey.ARTIST, song_artist));
+        tag.setField(tag.createField(Mp4FieldKey.ALBUM, song_album));
+        tag.setField(tag.createField(Mp4FieldKey.TITLE, song_name));
         return tag;
     }
 }
